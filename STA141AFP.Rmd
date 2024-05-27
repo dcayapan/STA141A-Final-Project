@@ -1,0 +1,95 @@
+---
+title: "STA141A Final Project"
+author: "Daniel Cayapan"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Users/danie/Downloads/')
+```
+Datasets For 2022-2023 Season
+```{r}
+nba <- read.csv("nba_salaries.csv")
+nba
+
+nba1 <- read.csv("NBAWL.csv")
+nba1
+```
+Merge the two data sets
+```{r}
+library(dplyr)
+
+merged_nba_full <- full_join(nba, nba1, by = "Team")
+print(head(merged_nba_full)) # print out first couple rows
+```
+Cleaning Data: IF NA salary due to player playing for multiple teams, just omit entire player.
+```{r}
+library(tidyr)
+
+merged_nba_clean <- drop_na(merged_nba_full)
+print(head(merged_nba_clean))
+```
+```{r}
+# load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(factoextra)
+
+# Select the salary column
+salary_data <- merged_nba_clean %>% select(Salary)
+
+# Normalize the salary data
+salary_data <- scale(salary_data)
+
+# Elbow method to find the optimal number of clusters
+fviz_nbclust(salary_data, kmeans, method = "wss") +
+  geom_vline(xintercept = 3, linetype = 2) +
+  labs(subtitle = "Elbow method")
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Apply K-means clustering
+kmeans_result <- kmeans(salary_data, centers = 3, nstart = 25)
+
+# Add cluster assignment to the original dataset
+merged_nba_clean$cluster <- kmeans_result$cluster
+
+# Plot the clusters
+ggplot(merged_nba_clean, aes(x = Salary, y = Salary, color = factor(cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering of Players by Salary",
+       x = "Salary",
+       y = "Salary",
+       color = "Cluster") +
+  theme_minimal()
+
+```
+```{r}
+# Count the number of players in each cluster
+cluster_counts <- merged_nba_clean %>%
+  group_by(cluster) %>%
+  summarise(count = n())
+
+print(cluster_counts)
+```
+
+```{r}
+# Calculate average salary per cluster
+avg_salary_per_cluster <- merged_nba_clean %>%
+  group_by(cluster) %>%
+  summarize(avg_salary = mean(Salary, na.rm = TRUE))
+
+# Merge average salary per cluster with the original data
+merged_nba_clean <- merge(merged_nba_clean, avg_salary_per_cluster, by = "cluster")
+
+# Calculate the correlation between average salary in clusters and team win percentage
+correlation1 <- cor(merged_nba_clean$avg_salary, merged_nba_clean$WP, use = "complete.obs")
+print(correlation1)
+```
+The correlation is a weak positive relationship between the average salary of players in a given cluster to the team's win percentage in the 2022-2023 NBA season. This means there is a very slight tendency for teams to have a higher win percentage when paying their players more.
+
+```{r}
+
+```
+
