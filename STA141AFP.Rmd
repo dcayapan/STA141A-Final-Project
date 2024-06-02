@@ -10,23 +10,32 @@ knitr::opts_knit$set(root.dir = '/Users/danie/Downloads/')
 Datasets For 2022-2023 Season
 ```{r}
 nba <- read.csv("nba_salaries.csv")
-nba
+print(head(nba))
 
 nba1 <- read.csv("NBAWL.csv")
-nba1
+print(head(nba1))
+
+nba2 <- read.csv("NBAData1.csv")
+print(head(nba2))
 ```
-Merge the two data sets
+Merge the three data sets
 ```{r}
 library(dplyr)
 
-merged_nba_full <- full_join(nba, nba1, by = "Team")
+merged_nba_full <- full_join(nba, nba2, by = "Team")
 print(head(merged_nba_full)) # print out first couple rows
+
+merged_nba_full <-full_join(merged_nba_full, nba1, by = "Team")
+print(head(merged_nba_full))
 ```
-Cleaning Data: IF NA salary due to player playing for multiple teams, just omit entire player.
+Cleaning Data: IF NA salary due to player playing for multiple teams, just omit entire player. Also delete overlapping columns between datasets that has inaccurate or data that is not needed for this analysis.
 ```{r}
 library(tidyr)
 
 merged_nba_clean <- drop_na(merged_nba_full)
+
+merged_nba_clean <- subset(merged_nba_clean, select = -c(Rank, RPI, W, L, PCT, SOS, PWR, Player.additional, PF.y, PA, Signed))
+merged_nba_clean <- drop_na(merged_nba_clean)
 print(head(merged_nba_clean))
 ```
 ```{r}
@@ -90,6 +99,77 @@ print(correlation1)
 The correlation is a weak positive relationship between the average salary of players in a given cluster to the team's win percentage in the 2022-2023 NBA season. This means there is a very slight tendency for teams to have a higher win percentage when paying their players more.
 
 ```{r}
+# Summarize statistics by cluster
+cluster_stats1 <- merged_nba_clean %>%
+  group_by(cluster) %>%
+  summarise(
+    avg_salary = mean(Salary, na.rm = TRUE),
+    avg_points_per_game = mean(PTS, na.rm = TRUE),
+    avg_assists_per_game = mean(AST, na.rm = TRUE),
+    avg_rebounds_per_game = mean(TRB, na.rm = TRUE),
+    avg_steals_per_game = mean(STL, na.rm = TRUE),
+    avg_blocks_per_game = mean(BLK, na.rm = TRUE)
+    
+  )
+
+print(cluster_stats1)
+```
+```{r}
+# Calculate correlation within each cluster
+correlation_by_cluster <- merged_nba_clean %>%
+  group_by(cluster) %>%
+  summarize(
+    correlation_salary_points = cor(Salary, PTS, use = "complete.obs"),
+    correlation_salary_assists = cor(Salary, AST, use = "complete.obs"),
+    correlation_salary_rebounds = cor(Salary, TRB, use = "complete.obs"),
+    correlation_salary_steals = cor(Salary, STL, use = "complete.obs"),
+    correlation_salary_blocks = cor(Salary, BLK, use = "complete.obs")
+    
+  )
+
+# View correlation by cluster
+print(correlation_by_cluster)
+```
+All correlations between clusters and player stats were relatively low, however what does stick out is cluster two with all stats having a slightly more moderate positive correlation between the cluster and the statistics. We note that cluster 2 has the most amount of players.
+
+We are now going to cluster by Player statistics
+```{r}
+# Calculate correlation between each player statistic and win percentage
+correlation_points <- cor(merged_nba_clean$PTS, merged_nba_clean$WP)
+correlation_assists <- cor(merged_nba_clean$AST, merged_nba_clean$WP)
+correlation_rebounds <- cor(merged_nba_clean$TRB, merged_nba_clean$WP)
+correlation_steals <- cor(merged_nba_clean$STL, merged_nba_clean$WP)
+correlation_blocks <- cor(merged_nba_clean$BLK, merged_nba_clean$WP)
+
+
+# View correlation for each player statistic
+print(paste("Correlation with Points:", correlation_points))
+print(paste("Correlation with Assists:", correlation_assists))
+print(paste("Correlation with Rebounds:", correlation_rebounds))
+print(paste("Correlation with Steals:", correlation_steals))
+print(paste("Correlation with Blocks:", correlation_blocks))
+```
+All stats provide a relatively weak relationship between individual players' stats and teams' win percentage.
+```{r}
+# Load necessary libraries
+library(ggplot2)
+
+# Create a data frame for plotting
+correlation_data <- data.frame(
+  Statistic = c("Points", "Assists", "Rebounds", "Steals", "Blocks"),
+  Correlation = c(correlation_points, correlation_assists, correlation_rebounds, correlation_steals, correlation_blocks)
+)
+
+# Create a scatter plot
+ggplot(correlation_data, aes(x = Statistic, y = Correlation)) +
+  geom_point(size = 3, color = "blue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Player Statistic", y = "Correlation with Win Percentage", title = "Correlation between Player Statistics and Win Percentage")
 
 ```
+
+
+
+
+
 
