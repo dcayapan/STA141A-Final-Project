@@ -40,17 +40,95 @@ merged_nba_clean <- drop_na(merged_nba_clean)
 
 print(head(merged_nba_clean))
 ```
+```{r}
+# Fit a linear regression model
+model <- lm(WP ~ Salary, data = merged_nba_clean)
+
+# Extract residuals and predicted values from the model
+residuals <- resid(model)
+predicted_values <- fitted(model)
+
+# Create a residual plot
+plot(predicted_values, residuals,
+     main = "Residual Plot of Individual Salaries",
+     xlab = "Predicted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
+
+```
+Resiudals seems very spread out and do not present an obvious pattern for the most part, so we can assume normality for a linear relationship between individual salaries and team win percentages.
+```{r}
+# Generate Q-Q plot to test for normality of 'Salary' data
+qqnorm(merged_nba_clean$Salary, main = "Q-Q Plot of Individual Salaries")
+qqline(merged_nba_clean$Salary, col = "red")
+```
+Q-Q plot on the other hand is not very good for assuming normality, we will take a look at other transformations below to see if any are any better, we will take a look at the correlation too. If the correlation is better then we will use that transformation.
+```{r}
+library(ggplot2)
+# Perform square root transformation
+merged_nba_clean$Salary_sqrt <- sqrt(merged_nba_clean$Salary)
+# Fit a linear regression model using square root transformation
+sqrt_model <- lm(WP ~ Salary_sqrt, data = merged_nba_clean)
+
+# Print summary of the model
+summary(sqrt_model)
+
+# Plot the relationship between Total spending (sqrt) and WP with regression line
+ggplot(merged_nba_clean, aes(x = Salary_sqrt, y = WP)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Square Root Transformation of Individual Salaries vs. Win Percentage",
+       x = "Square Root of Salaries",
+       y = "Win Percentage") +
+  theme_minimal()
+
+```
+```{r}
+residuals_sqrt <- residuals(sqrt_model)
+
+# Create a residual plot
+plot(merged_nba_clean$Salary_sqrt, residuals_sqrt,
+     main = "Residual Plot of Square-Root Transformed Salaries",
+     xlab = "Inverse of Individual Salaries",
+     ylab = "Residuals")
+abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
+```
+
+Residual plot does not look to bad, no pattern is apparent.
+```{r}
+# Create Q-Q plot of the residuals
+qqnorm(residuals_sqrt, main = "Q-Q Plot of Residuals (Square Root Transformed Model)")
+qqline(residuals_sqrt, col = "red")
+```
+Q-Q plot for square root transformation is definitely better than the orignal linear model, although still could be better.
+
+Lets compare correlation between the original and square root transformation
+```{r}
+correlation1 <- cor(merged_nba_clean$Salary, merged_nba_clean$WP)
+
+
+print(paste("Correlation between individual salary and team win percentage:", correlation1))
+```
+Since the square root transformation for invdividual salaries is higher than the default, we will use the square root transformation moving forward.
+```{r}
+correlation_sqrt <- cor(merged_nba_clean$Salary_sqrt, merged_nba_clean$WP)
+
+
+print(paste("Correlation between individual salary(square-root transformation) and team win percentage:", correlation_sqrt))
+```
+
+
 First we will do correlation between individual player salaries and their teams' win percentage without clustering to see the default results.
 ```{r}
 library(ggplot2)
 
-correlation1 <- cor(merged_nba_clean$Salary, merged_nba_clean$WP)
+correlation1 <- cor(merged_nba_clean$Salary_sqrt, merged_nba_clean$WP)
 
 
 print(paste("Correlation between individual salary and team win percentage:", correlation1))
 
 # Plot the relationship between individual salary and team win percentage
-ggplot(merged_nba_clean, aes(x = Salary, y = WP)) +
+ggplot(merged_nba_clean, aes(x = Salary_sqrt, y = WP)) +
   geom_point() +
   geom_smooth(method = "lm", col = "blue") +
   labs(title = "Correlation between Individual Salary and Team Win Percentage",
@@ -67,7 +145,7 @@ library(ggplot2)
 library(factoextra)
 
 # Select the salary column
-salary_data <- merged_nba_clean %>% select(Salary)
+salary_data <- merged_nba_clean %>% select(Salary_sqrt)
 
 # Normalize the salary data
 salary_data <- scale(salary_data)
@@ -87,11 +165,11 @@ kmeans_result <- kmeans(salary_data, centers = 3, nstart = 25)
 merged_nba_clean$cluster <- kmeans_result$cluster
 
 # Plot the clusters
-ggplot(merged_nba_clean, aes(x = Salary, y = Salary, color = factor(cluster))) +
+ggplot(merged_nba_clean, aes(x = Salary_sqrt, y = Salary_sqrt, color = factor(cluster))) +
   geom_point() +
   labs(title = "K-means Clustering of Players by Salary",
-       x = "Salary",
-       y = "Salary",
+       x = "Salary_sqrt",
+       y = "Salary_sqrt",
        color = "Cluster") +
   theme_minimal()
 
@@ -109,7 +187,7 @@ Correlation between individual player salaries and their teams' win percentage w
 # Calculate average salary per cluster
 cluster_stat <- merged_nba_clean %>%
   group_by(cluster) %>%
-  summarise(mean_salary = mean(Salary), mean_WP = mean(WP))
+  summarise(mean_salary = mean(Salary_sqrt), mean_WP = mean(WP))
 
 print(cluster_stat)
 
@@ -118,18 +196,94 @@ correlation_cluster_salary_WP <- cor(cluster_stat$mean_salary, cluster_stat$mean
 
 print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_salary_WP))
 ```
-Next we will see correlation between average team spending and win percentage without clustering.
+```{r}
+# Fit a linear regression model
+model1 <- lm(WP ~ Total, data = merged_nba_clean)
+
+# Extract residuals and predicted values from the model
+residuals <- resid(model1)
+predicted_values <- fitted(model1)
+
+# Create a residual plot
+plot(predicted_values, residuals,
+     main = "Residual Plot of Team Spending",
+     xlab = "Predicted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
+```
+Residual plot looks pretty good for Team Spending, no apparent pattern, we can assume normality from this.
+
+```{r}
+# Generate Q-Q plot to test for normality of 'Total' data
+qqnorm(merged_nba_clean$Total, main = "Q-Q Plot of Team Spending")
+qqline(merged_nba_clean$Total, col = "red")
+```
+Once again, the Q-Q plot does not demonstrate a normal distribution, so we will look at different transformations.
+
+```{r}
+# Perform square root transformation
+merged_nba_clean$Total_sqrt <- sqrt(merged_nba_clean$Total)
+# Fit a linear regression model using square root transformation
+sqrt_model1 <- lm(WP ~ Total_sqrt, data = merged_nba_clean)
+
+# Print summary of the model
+summary(sqrt_model1)
+
+# Plot the relationship between Total spending (sqrt) and WP with regression line
+ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Sqaure Root Transformation of Team spending vs. Win Percentage",
+       x = "Exponential of Team Spending",
+       y = "Win Percentage") +
+  theme_minimal()
+
+```
+```{r}
+residuals_sqrt1 <- residuals(sqrt_model1)
+
+# Create a residual plot
+plot(merged_nba_clean$Total_sqrt, residuals_sqrt1,
+     main = "Residual Plot of Square-Root Transformed Total Spending",
+     xlab = "Inverse of Total Spending",
+     ylab = "Residuals")
+abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
+```
+Residuals have no apparent pattern so passes the check for normality. 
+
+```{r}
+# Create Q-Q plot of the residuals
+qqnorm(residuals_sqrt1, main = "Q-Q Plot of Residuals (Exponential Model)")
+qqline(residuals_sqrt1, col = "red")
+
+```
+The Q-Q plot is still not that good when using square root transformation on Team Spending. However we will compare it with the default to see which model we will proceed with.
+
+```{r}
+correlation2 <- cor(merged_nba_clean$Total, merged_nba_clean$WP)
+
+print(paste("Correlation between Average Team Spending and Win Percentage Without Clustering:", correlation2))
+```
+```{r}
+sqrt_corr2 <- cor(merged_nba_clean$Total_sqrt, merged_nba_clean$WP)
+
+# Step 4: Print the correlation
+print(paste("Correlation between Average Team Spending(Square Root Transformation) and Win Percentage Without Clustering:", sqrt_corr2))
+```
+Once again, the correlation for square root transformation was higher so we will use it to find the correlation between Team Spending and Win Percentage with and without clustering.
+
+Correlation between average team spending and win percentage without clustering.
 ```{r}
 library(ggplot2)
 
-# Step 3: Calculate the correlation
-correlation2 <- cor(merged_nba_clean$Total, merged_nba_clean$WP)
 
-# Step 4: Print the correlation
-print(paste("Correlation between Average Team Spending and Win Percentage Without Clustering:", correlation2))
+sqrt_corr2 <- cor(merged_nba_clean$Total_sqrt, merged_nba_clean$WP)
 
-# Step 5: Plot the relationship between spending and win percentage
-ggplot(merged_nba_clean, aes(x = Total, y = WP)) +
+
+print(paste("Correlation between Average Team Spending(Square-Root Transformation) and Win Percentage Without Clustering:", sqrt_corr2))
+
+
+ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
   geom_point() +
   geom_smooth(method = "lm", col = "blue") +
   labs(title = "Correlation between Team Spending and Win Percentage",
@@ -146,7 +300,7 @@ library(ggplot2)
 library(factoextra)
 
 # Select the Total column
-Total_data <- merged_nba_clean %>% select(Total)
+Total_data <- merged_nba_clean %>% select(Total_sqrt)
 
 # Normalize the Total data
 Total_data <- scale(Total_data)
@@ -183,7 +337,7 @@ We will now find correlation between average team spending and win percentage wi
 # Calculate the mean salary and WP for each cluster
 cluster_stats <- merged_nba_clean %>%
   group_by(cluster1) %>%
-  summarise(mean_spending = mean(Total), mean_WP = mean(WP))
+  summarise(mean_spending = mean(Total_sqrt), mean_WP = mean(WP))
 
 print(cluster_stats)
 
@@ -192,7 +346,78 @@ correlation_cluster_spending_WP <- cor(cluster_stats$mean_spending, cluster_stat
 
 print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_spending_WP))
 ```
+We look at individual points since total points are what decide the outcome of a game. So we correlate a player's average points with their salary.
+```{r}
+library(ggplot2)
 
+correlation_pts <- cor(merged_nba_clean$PTS, merged_nba_clean$Salary)
+
+print(paste("Correlation between individual Points and Salary:", correlation_pts))
+
+ggplot(merged_nba_clean, aes(x = PTS, y = Salary)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Correlation between Average Points and Salary",
+       x = "Average Points",
+       y = "Salary") +
+  theme_minimal()
+
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+library(factoextra)
+
+# Select the Points column
+points_data <- merged_nba_clean %>% select(PTS)
+
+# Normalize the Points data
+points_data <- scale(points_data)
+
+# Elbow method to find the optimal number of clusters
+fviz_nbclust(points_data, kmeans, method = "wss") +
+  geom_vline(xintercept = 3, linetype = 2) +
+  labs(subtitle = "Elbow method")
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Apply K-means clustering
+kmeans_result_points <- kmeans(points_data, centers = 3, nstart = 25)
+
+# Add cluster assignment to the original dataset
+merged_nba_clean$cluster_points <- kmeans_result_points$cluster
+
+# Plot the clusters
+ggplot(merged_nba_clean, aes(x = PTS, y = WP, color = factor(cluster_points))) +
+  geom_point() +
+  labs(title = "K-means Clustering of Players by Points",
+       x = "Points",
+       y = "Win Percentage",
+       color = "Cluster") +
+  theme_minimal()
+
+# Count the number of players in each cluster
+cluster_counts_points <- merged_nba_clean %>%
+  group_by(cluster_points) %>%
+  summarise(count = n())
+
+print(cluster_counts_points)
+```
+```{r}
+# Calculate the mean salary and WP for each cluster
+cluster_stats1 <- merged_nba_clean %>%
+  group_by(cluster_points) %>%
+  summarise(mean_points = mean(PTS), mean_salaries = mean(Salary))
+
+print(cluster_stats1)
+
+# Calculate the correlation between mean spending and mean WP for clusters
+correlation_cluster_PTS_Salary <- cor(cluster_stats1$mean_points, cluster_stats1$mean_salaries)
+
+print(paste("Correlation between cluster mean points and Salary:", correlation_cluster_PTS_Salary))
+```
+Conclusion: Based on the several questions that we generated, we have concluded that NBA Players' salaries are justified. With high correlation of 0.90 + on all 3 questions and clustering we were able to gather that NBA players with similar salaries are paid well based on their individual performances and their affect on team win percentages.
 
 
 
