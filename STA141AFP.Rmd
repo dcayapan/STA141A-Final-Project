@@ -34,10 +34,32 @@ library(tidyr)
 
 merged_nba_clean <- drop_na(merged_nba_full)
 
+
 merged_nba_clean <- subset(merged_nba_clean, select = -c(Rank, RPI, W, L, PCT, SOS, PWR, Player.additional, PF.y, PA, Signed))
 merged_nba_clean <- drop_na(merged_nba_clean)
+
 print(head(merged_nba_clean))
 ```
+First we will do correlation between individual player salaries and their teams' win percentage without clustering to see the default results.
+```{r}
+library(ggplot2)
+
+correlation1 <- cor(merged_nba_clean$Salary, merged_nba_clean$WP)
+
+
+print(paste("Correlation between individual salary and team win percentage:", correlation1))
+
+# Plot the relationship between individual salary and team win percentage
+ggplot(merged_nba_clean, aes(x = Salary, y = WP)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Correlation between Individual Salary and Team Win Percentage",
+       x = "Individual Salary",
+       y = "Win Percentage") +
+  theme_minimal()
+```
+
+Now we will cluster by player salaries
 ```{r}
 # load necessary libraries
 library(dplyr)
@@ -50,7 +72,7 @@ salary_data <- merged_nba_clean %>% select(Salary)
 # Normalize the salary data
 salary_data <- scale(salary_data)
 
-# Elbow method to find the optimal number of clusters
+# Elbow method to find the optimal number of clusters(as researched)
 fviz_nbclust(salary_data, kmeans, method = "wss") +
   geom_vline(xintercept = 3, linetype = 2) +
   labs(subtitle = "Elbow method")
@@ -82,92 +104,94 @@ cluster_counts <- merged_nba_clean %>%
 
 print(cluster_counts)
 ```
-
+Correlation between individual player salaries and their teams' win percentage with clustering to see more reliable results.
 ```{r}
 # Calculate average salary per cluster
-avg_salary_per_cluster <- merged_nba_clean %>%
+cluster_stat <- merged_nba_clean %>%
   group_by(cluster) %>%
-  summarize(avg_salary = mean(Salary, na.rm = TRUE))
+  summarise(mean_salary = mean(Salary), mean_WP = mean(WP))
 
-# Merge average salary per cluster with the original data
-merged_nba_clean <- merge(merged_nba_clean, avg_salary_per_cluster, by = "cluster")
+print(cluster_stat)
 
-# Calculate the correlation between average salary in clusters and team win percentage
-correlation1 <- cor(merged_nba_clean$avg_salary, merged_nba_clean$WP, use = "complete.obs")
-print(correlation1)
+# Calculate the correlation between mean spending and mean WP for clusters
+correlation_cluster_salary_WP <- cor(cluster_stat$mean_salary, cluster_stat$mean_WP)
+
+print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_salary_WP))
 ```
-The correlation is a weak positive relationship between the average salary of players in a given cluster to the team's win percentage in the 2022-2023 NBA season. This means there is a very slight tendency for teams to have a higher win percentage when paying their players more.
-
+Next we will see correlation between average team spending and win percentage without clustering.
 ```{r}
-# Summarize statistics by cluster
-cluster_stats1 <- merged_nba_clean %>%
-  group_by(cluster) %>%
-  summarise(
-    avg_salary = mean(Salary, na.rm = TRUE),
-    avg_points_per_game = mean(PTS, na.rm = TRUE),
-    avg_assists_per_game = mean(AST, na.rm = TRUE),
-    avg_rebounds_per_game = mean(TRB, na.rm = TRUE),
-    avg_steals_per_game = mean(STL, na.rm = TRUE),
-    avg_blocks_per_game = mean(BLK, na.rm = TRUE)
-    
-  )
-
-print(cluster_stats1)
-```
-```{r}
-# Calculate correlation within each cluster
-correlation_by_cluster <- merged_nba_clean %>%
-  group_by(cluster) %>%
-  summarize(
-    correlation_salary_points = cor(Salary, PTS, use = "complete.obs"),
-    correlation_salary_assists = cor(Salary, AST, use = "complete.obs"),
-    correlation_salary_rebounds = cor(Salary, TRB, use = "complete.obs"),
-    correlation_salary_steals = cor(Salary, STL, use = "complete.obs"),
-    correlation_salary_blocks = cor(Salary, BLK, use = "complete.obs")
-    
-  )
-
-# View correlation by cluster
-print(correlation_by_cluster)
-```
-All correlations between clusters and player stats were relatively low, however what does stick out is cluster two with all stats having a slightly more moderate positive correlation between the cluster and the statistics. We note that cluster 2 has the most amount of players.
-
-We are now going to cluster by Player statistics
-```{r}
-# Calculate correlation between each player statistic and win percentage
-correlation_points <- cor(merged_nba_clean$PTS, merged_nba_clean$WP)
-correlation_assists <- cor(merged_nba_clean$AST, merged_nba_clean$WP)
-correlation_rebounds <- cor(merged_nba_clean$TRB, merged_nba_clean$WP)
-correlation_steals <- cor(merged_nba_clean$STL, merged_nba_clean$WP)
-correlation_blocks <- cor(merged_nba_clean$BLK, merged_nba_clean$WP)
-
-
-# View correlation for each player statistic
-print(paste("Correlation with Points:", correlation_points))
-print(paste("Correlation with Assists:", correlation_assists))
-print(paste("Correlation with Rebounds:", correlation_rebounds))
-print(paste("Correlation with Steals:", correlation_steals))
-print(paste("Correlation with Blocks:", correlation_blocks))
-```
-All stats provide a relatively weak relationship between individual players' stats and teams' win percentage.
-```{r}
-# Load necessary libraries
 library(ggplot2)
 
-# Create a data frame for plotting
-correlation_data <- data.frame(
-  Statistic = c("Points", "Assists", "Rebounds", "Steals", "Blocks"),
-  Correlation = c(correlation_points, correlation_assists, correlation_rebounds, correlation_steals, correlation_blocks)
-)
+# Step 3: Calculate the correlation
+correlation2 <- cor(merged_nba_clean$Total, merged_nba_clean$WP)
 
-# Create a scatter plot
-ggplot(correlation_data, aes(x = Statistic, y = Correlation)) +
-  geom_point(size = 3, color = "blue") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  labs(x = "Player Statistic", y = "Correlation with Win Percentage", title = "Correlation between Player Statistics and Win Percentage")
+# Step 4: Print the correlation
+print(paste("Correlation between Average Team Spending and Win Percentage Without Clustering:", correlation2))
+
+# Step 5: Plot the relationship between spending and win percentage
+ggplot(merged_nba_clean, aes(x = Total, y = WP)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Correlation between Team Spending and Win Percentage",
+       x = "Average Team Spending",
+       y = "Win Percentage") +
+  theme_minimal()
+
+```
+Cluster by Team Spending
+```{r}
+# load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(factoextra)
+
+# Select the Total column
+Total_data <- merged_nba_clean %>% select(Total)
+
+# Normalize the Total data
+Total_data <- scale(Total_data)
+
+# Elbow method to find the optimal number of clusters(as researched)
+fviz_nbclust(Total_data, kmeans, method = "wss") +
+  geom_vline(xintercept = 3, linetype = 2) +
+  labs(subtitle = "Elbow method")
+
+# Set seed for reproducibility
+set.seed(23)
+
+# Apply K-means clustering
+kmeans_result1 <- kmeans(Total_data, centers = 3, nstart = 25)
+
+# Add cluster assignment to the original dataset
+merged_nba_clean$cluster1 <- kmeans_result1$cluster
+
+# Plot the clusters
+ggplot(merged_nba_clean, aes(x = Total, y = Total, color = factor(cluster1))) +
+  geom_point() +
+  labs(title = "K-means Clustering of Players by Team Spending",
+       x = "Total",
+       y = "Total",
+       color = "Cluster") +
+  theme_minimal()
 
 ```
 
+
+
+We will now find correlation between average team spending and win percentage with clustering.
+```{r}
+# Calculate the mean salary and WP for each cluster
+cluster_stats <- merged_nba_clean %>%
+  group_by(cluster1) %>%
+  summarise(mean_spending = mean(Total), mean_WP = mean(WP))
+
+print(cluster_stats)
+
+# Calculate the correlation between mean spending and mean WP for clusters
+correlation_cluster_spending_WP <- cor(cluster_stats$mean_spending, cluster_stats$mean_WP)
+
+print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_spending_WP))
+```
 
 
 
