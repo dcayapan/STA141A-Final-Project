@@ -234,7 +234,7 @@ ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Sqaure Root Transformation of Team spending vs. Win Percentage",
-       x = "Exponential of Team Spending",
+       x = "Square Root Transformation of Team Spending",
        y = "Win Percentage") +
   theme_minimal()
 
@@ -245,7 +245,7 @@ residuals_sqrt1 <- residuals(sqrt_model1)
 # Create a residual plot
 plot(merged_nba_clean$Total_sqrt, residuals_sqrt1,
      main = "Residual Plot of Square-Root Transformed Total Spending",
-     xlab = "Inverse of Total Spending",
+     xlab = "Square Root of Total Spending",
      ylab = "Residuals")
 abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
 ```
