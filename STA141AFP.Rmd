@@ -35,7 +35,9 @@ library(tidyr)
 merged_nba_clean <- drop_na(merged_nba_full)
 
 
-merged_nba_clean <- subset(merged_nba_clean, select = -c(Rank, RPI, W, L, PCT, SOS, PWR, Player.additional, PF.y, PA, Signed))
+merged_nba_clean <- subset(merged_nba_clean, select = -c(Rank, RPI, W, L, 
+                                                         PCT, SOS, PWR, Player.additional, 
+                                                         PF.y, PA, Signed))
 merged_nba_clean <- drop_na(merged_nba_clean)
 
 print(head(merged_nba_clean))
@@ -77,7 +79,8 @@ summary(sqrt_model)
 ggplot(merged_nba_clean, aes(x = Salary_sqrt, y = WP)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Square Root Transformation of Individual Salaries vs. Win Percentage",
+  labs(title = "Square Root Transformation of Individual
+       Salaries vs. Win Percentage",
        x = "Square Root of Salaries",
        y = "Win Percentage") +
   theme_minimal()
@@ -117,7 +120,6 @@ correlation_sqrt <- cor(merged_nba_clean$Salary_sqrt, merged_nba_clean$WP)
 print(paste("Correlation between individual salary(square-root transformation) and team win percentage:", correlation_sqrt))
 ```
 
-
 First we will do correlation between individual player salaries and their teams' win percentage without clustering to see the default results.
 ```{r}
 library(ggplot2)
@@ -136,6 +138,7 @@ ggplot(merged_nba_clean, aes(x = Salary_sqrt, y = WP)) +
        y = "Win Percentage") +
   theme_minimal()
 ```
+From this we see that direction of the correlation is not very helpful in making a conclusion as it is very low, so clustering by salaries may produce better results.
 
 Now we will cluster by player salaries
 ```{r}
@@ -196,6 +199,9 @@ correlation_cluster_salary_WP <- cor(cluster_stat$mean_salary, cluster_stat$mean
 
 print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_salary_WP))
 ```
+We can see the huge difference clustering by player salaries makes, making the correlation 0.90 plus which demonstrates a strong positive relationship between player salaries and the win percentage of their corresponding teams which is what we want to see to help us answer our big question.
+
+Next we will move on to team spending's affect on win percentage.
 ```{r}
 # Fit a linear regression model
 model1 <- lm(WP ~ Total, data = merged_nba_clean)
@@ -233,7 +239,8 @@ summary(sqrt_model1)
 ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Sqaure Root Transformation of Team spending vs. Win Percentage",
+  labs(title = "Sqaure Root Transformation of
+       Team spending vs. Win Percentage",
        x = "Square Root Transformation of Team Spending",
        y = "Win Percentage") +
   theme_minimal()
@@ -253,7 +260,7 @@ Residuals have no apparent pattern so passes the check for normality.
 
 ```{r}
 # Create Q-Q plot of the residuals
-qqnorm(residuals_sqrt1, main = "Q-Q Plot of Residuals (Exponential Model)")
+qqnorm(residuals_sqrt1, main = "Q-Q Plot of Residuals (Square Root Model)")
 qqline(residuals_sqrt1, col = "red")
 
 ```
@@ -262,25 +269,30 @@ The Q-Q plot is still not that good when using square root transformation on Tea
 ```{r}
 correlation2 <- cor(merged_nba_clean$Total, merged_nba_clean$WP)
 
-print(paste("Correlation between Average Team Spending and Win Percentage Without Clustering:", correlation2))
+print(paste("Correlation between Average Team Spending
+            and Win Percentage Without Clustering:", correlation2))
 ```
 ```{r}
 sqrt_corr2 <- cor(merged_nba_clean$Total_sqrt, merged_nba_clean$WP)
 
 # Step 4: Print the correlation
-print(paste("Correlation between Average Team Spending(Square Root Transformation) and Win Percentage Without Clustering:", sqrt_corr2))
+print(paste("Correlation between Average Team Spending
+(Square Root Transformation) and Win Percentage Without
+Clustering:", sqrt_corr2))
 ```
-Once again, the correlation for square root transformation was higher so we will use it to find the correlation between Team Spending and Win Percentage with and without clustering.
+Once again, the correlation for square root transformation was higher so we will use it to find the correlation between Team Spending and Win Percentage with and without clustering. 
 
 Correlation between average team spending and win percentage without clustering.
 ```{r}
 library(ggplot2)
 
-
+# sqrt transformation correlation
 sqrt_corr2 <- cor(merged_nba_clean$Total_sqrt, merged_nba_clean$WP)
 
 
-print(paste("Correlation between Average Team Spending(Square-Root Transformation) and Win Percentage Without Clustering:", sqrt_corr2))
+print(paste("Correlation between Average Team Spending
+(Square-Root Transformation) and Win Percentage Without
+Clustering:", sqrt_corr2))
 
 
 ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
@@ -292,6 +304,8 @@ ggplot(merged_nba_clean, aes(x = Total_sqrt, y = WP)) +
   theme_minimal()
 
 ```
+We see that the correlation gives a positive moderate relationship between the two variables. but we want to optimize our model through clustering to see if we can get a better sense of the relationship between team spending and win percentage.  
+
 Cluster by Team Spending
 ```{r}
 # load necessary libraries
@@ -334,7 +348,7 @@ ggplot(merged_nba_clean, aes(x = Total, y = Total, color = factor(cluster1))) +
 
 We will now find correlation between average team spending and win percentage with clustering.
 ```{r}
-# Calculate the mean salary and WP for each cluster
+# Calculate the mean team spending and WP for each cluster
 cluster_stats <- merged_nba_clean %>%
   group_by(cluster1) %>%
   summarise(mean_spending = mean(Total_sqrt), mean_WP = mean(WP))
@@ -346,6 +360,8 @@ correlation_cluster_spending_WP <- cor(cluster_stats$mean_spending, cluster_stat
 
 print(paste("Correlation between cluster mean salary and win percentage:", correlation_cluster_spending_WP))
 ```
+Once again, the correlation was very high with about 0.99, which is a near perfect correlation between team spending and win percentage when team spending is clustered into 3 clusters. This helps answer our question of if NBA player salaries are justified based on how much the team spends on players being a huge chunk of how the team handles their money. This then demonstrates high correlation with outcomes of winning the game, showing spending is great on outcome of their games.
+
 We look at individual points since total points are what decide the outcome of a game. So we correlate a player's average points with their salary.
 ```{r}
 library(ggplot2)
@@ -363,6 +379,9 @@ ggplot(merged_nba_clean, aes(x = PTS, y = Salary)) +
   theme_minimal()
 
 ```
+Pretty high correlation, but can be optimized with clustering by average points.
+
+Cluster by points
 ```{r}
 library(dplyr)
 library(ggplot2)
@@ -417,6 +436,9 @@ correlation_cluster_PTS_Salary <- cor(cluster_stats1$mean_points, cluster_stats1
 
 print(paste("Correlation between cluster mean points and Salary:", correlation_cluster_PTS_Salary))
 ```
+Very high correlation between clustering of player points and their salary. This displays the very strong relationship between how high players average in NBA games corresponding to their salaries.
+
+
 Conclusion: Based on the several questions that we generated, we have concluded that NBA Players' salaries are justified. With high correlation of 0.90 + on all 3 questions and clustering we were able to gather that NBA players with similar salaries are paid well based on their individual performances and their effect on team win percentages.
 
 
