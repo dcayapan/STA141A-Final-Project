@@ -1,6 +1,6 @@
 ---
 title: "STA141A Final Project"
-author: "Daniel Cayapan"
+author: "Daniel Cayapan, Ian Dang, Yiming Cao, Wenzhuo Sun"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
@@ -89,7 +89,7 @@ residuals_sqrt <- residuals(sqrt_model)
 # Create a residual plot
 plot(merged_nba_clean$Salary_sqrt, residuals_sqrt,
      main = "Residual Plot of Square-Root Transformed Salaries",
-     xlab = "Inverse of Individual Salaries",
+     xlab = "Square Root of Individual Salaries",
      ylab = "Residuals")
 abline(h = 0, col = "red")  # Add a horizontal line at y = 0 for reference
 ```
@@ -417,7 +417,7 @@ correlation_cluster_PTS_Salary <- cor(cluster_stats1$mean_points, cluster_stats1
 
 print(paste("Correlation between cluster mean points and Salary:", correlation_cluster_PTS_Salary))
 ```
-Conclusion: Based on the several questions that we generated, we have concluded that NBA Players' salaries are justified. With high correlation of 0.90 + on all 3 questions and clustering we were able to gather that NBA players with similar salaries are paid well based on their individual performances and their affect on team win percentages.
+Conclusion: Based on the several questions that we generated, we have concluded that NBA Players' salaries are justified. With high correlation of 0.90 + on all 3 questions and clustering we were able to gather that NBA players with similar salaries are paid well based on their individual performances and their effect on team win percentages.
 
 
 
